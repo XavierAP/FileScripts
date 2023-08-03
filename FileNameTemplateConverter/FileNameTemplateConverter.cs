@@ -1,16 +1,32 @@
 ﻿using System.Diagnostics.Contracts;
+using System.Text;
 
 namespace JP.FileScripts
 {
+	using Value = UInt32;
+	using FieldValues = Dictionary<Field, UInt32>;
+	using FieldPositionsInTemplate = Dictionary<Field, (int StartIndex, int Length)>;
     using FastString = ReadOnlySpan<char>;
+
+	enum Field
+	{
+		Index,
+		Year,
+		Month,
+		Day,
+	}
 
 	[Pure]
 	public class FileNameTemplateConverter : IBatchNameChanger
 	{
 		public FileNameTemplateConverter(string oldTemplate, string newTemplate)
 		{
-			var fieldsInNewTemplate = GetFields(newTemplate);
+			FieldsInOldTemplate = GetFields(oldTemplate);
+			ComposeFromNewTemplate = MakeComposer(newTemplate);
 		}
+
+		private readonly FieldPositionsInTemplate FieldsInOldTemplate;
+		private readonly Action<FieldValues> ComposeFromNewTemplate;
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
@@ -24,34 +40,38 @@ namespace JP.FileScripts
 			}
 		}
 
-		private T GetFieldValues(string name)
+		private FieldValues GetFieldValues(string name)
 		{
-			throw new NotImplementedException();
+			return FieldsInOldTemplate.ToDictionary(
+				position => position.Key,
+				position => Value.Parse(name.AsSpan(position.Value.StartIndex, position.Value.Length)));
 		}
 
-		private string MakeNewName(T fieldValues)
+		private string MakeNewName(FieldValues fieldValues)
 		{
 			throw new NotImplementedException();
 		}
 
 		private const char BeforeField = '\\';
 
-		private static IEnumerable<Field> GetFields(string template)
+		private FieldPositionsInTemplate GetFields(string template)
 		{
-			int i;
+			var fields = new FieldPositionsInTemplate();
+
 			FastString rest = template;
+			int i;
 
 			while (0 < (i = rest.IndexOf(BeforeField)))
 			{
 				rest = rest.Slice(i + 1);
-				yield return GetNextField(rest);
+				fields.Add(GetNextField(rest));
 			}
 		}
 
 		private static Field GetNextField(FastString rest)
 		{
 			var firstChar = rest[0];
-			switch(rest[0])
+			switch(firstChar)
 			{
 				case 'i': return Field.Index;
 				case 'Y': return Field.Year;
@@ -61,12 +81,9 @@ namespace JP.FileScripts
 			}
 		}
 
-		private enum Field
+		private Action<FieldValues> MakeComposer(string newTemplate)
 		{
-			Index,
-			Year,
-			Month,
-			Day,
+			throw new NotImplementedException();
 		}
 	}
 }
