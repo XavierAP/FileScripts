@@ -1,0 +1,8 @@
+### Visual Studio
+*.sln
+*.csproj
+*.user
+bin/
+obj/
+**/Properties/*
+.vs/
