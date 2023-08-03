@@ -9,16 +9,7 @@
 				@"\YYYY-\MM-\DD (\i)"
 				).ChangeNames(
 					Directory.EnumerateFiles(args[0]).ToArray(),
-					TestChangeName);
+					Test.ChangeName);
 		}
-		
-		#if DEBUG
-		private static void TestChangeName(string oldPathName, string newPathName)
-		{
-			Console.WriteLine(oldPathName);
-			Console.WriteLine(newPathName);
-			Console.WriteLine("====================");
-		}
-		#endif
 	}
 }
