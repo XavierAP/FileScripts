@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Text;
 
 namespace JP.FileScripts
@@ -81,16 +82,20 @@ namespace JP.FileScripts
 			return (lastIndex, maxDigitLength);
 		}
 
+		private const char
+			OpeningBracket = '(',
+			ClosingBracket = ')';
+
 		private static bool
-		HasNumberInBrackets(FastString pathName, out FastString prefixIncludingBracket, out int digitLength)
+		HasNumberInBrackets(string pathName, out FastString prefixIncludingBracket, out int digitLength)
 		{
-			for(int i = 0; i < pathName.Length; i++)
+			for(int i = GetIndexOfFileName(pathName); i < pathName.Length; i++)
 			{
 				char pre = pathName[i];
-				if(pre == '(' &&
+				if(pre == OpeningBracket &&
 					HasNumberAt(pathName, i + 1, out digitLength))
 				{
-					prefixIncludingBracket = pathName[..(i + 1)];
+					prefixIncludingBracket = pathName.AsSpan(0, i + 1);
 					return true;
 				}
 			}
@@ -109,7 +114,7 @@ namespace JP.FileScripts
 				{
 					continue;
 				}
-				else if(c == ')')
+				else if(c == ClosingBracket)
 				{
 					digitLength = i - startIndex;
 					return digitLength > 0;
@@ -122,5 +127,7 @@ namespace JP.FileScripts
 			digitLength = NullLength;
 			return false;
 		}
+
+		private static int GetIndexOfFileName(string pathName) => Path.GetDirectoryName(pathName).Length;
 	}
 }
