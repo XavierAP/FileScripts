@@ -19,23 +19,23 @@ namespace JP.FileScripts
 		private const int NullLength = int.MinValue;
 
 		public void
-		ChangeNames(IReadOnlyList<string> names, NameChanger changeName)
+		ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
-			var cache = new StringBuilder(names[0].Length + 9);
-			for(int i = 0; i < names.Count; i++)
+			var cache = new StringBuilder(pathNames[0].Length + 9);
+			for(int i = 0; i < pathNames.Count; i++)
 			{
-				var pathName = names[i];
+				var pathName = pathNames[i];
 				if(HasNumberInBrackets(pathName,
 					out var prefixIncludingBracket,
 					out var digitLength))
 				{
-					var (k, maxDigitLength) = FindLastFileWithSamePrefix(names, prefixIncludingBracket, i, digitLength);
+					var (k, maxDigitLength) = FindLastFileWithSamePrefix(pathNames, prefixIncludingBracket, i, digitLength);
 
 					if(maxDigitLength > 1)
 					{
 						for(int j = i; j <= k; j++)
 						{
-							pathName = names[j];
+							pathName = pathNames[j];
 							changeName(pathName, GetNewName(pathName, prefixIncludingBracket, maxDigitLength, cache));
 						}
 					}

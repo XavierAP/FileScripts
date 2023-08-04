@@ -5,20 +5,11 @@
 		static void Main(string[] args)
 		{
 			new FileNameTemplateConverter(
-				@"IMG_\YYYY\MM\DD_\HH\MM\SS",
+				@"IMG_\YYYY\MM\DD_\hh\mm\ss",
 				@"\YYYY-\MM-\DD (\i)"
 				).ChangeNames(
 					Directory.EnumerateFiles(args[0]).ToArray(),
-					TestChangeName);
+					File.Move);
 		}
-		
-		#if DEBUG
-		private static void TestChangeName(string oldPathName, string newPathName)
-		{
-			Console.WriteLine(oldPathName);
-			Console.WriteLine(newPathName);
-			Console.WriteLine("====================");
-		}
-		#endif
 	}
 }
