@@ -3,12 +3,11 @@ using System.Text;
 
 namespace JP.FileScripts
 {
-	using Value = UInt32;
-	using FieldValues = Dictionary<Field, UInt32>;
+	using FieldValues = Dictionary<Field, int>;
 	using FieldPositionsInTemplate = Dictionary<Field, (int StartIndex, int Length)>;
     using FastString = ReadOnlySpan<char>;
 
-	delegate string ComposerFromTemplate(FieldValues fieldValues, Func<Value, string> composeIndex);
+	delegate string ComposerFromTemplate(FieldValues fieldValues, int fileCountIndex, Func<int, string> composeIndex);
 
 	enum Field
 	{
@@ -40,19 +39,20 @@ namespace JP.FileScripts
 		{
 			var composeIndex = MakeIndexComposer(pathNames.Count);
 
-			foreach (var pathName in pathNames)
+			for (int fileCountIndex = 0; fileCountIndex < pathNames.Count; fileCountIndex++)
 			{
+				var pathName = pathNames[fileCountIndex];
 				var (path, fileName) = BreakDownPathName(pathName);
 				if (!TryGetFieldValues(fileName, out var fieldValues)) //TODO optimize allocation
 					continue;
 
-				var newName = ComposeFromNewTemplate(fieldValues, composeIndex);
+				var newName = ComposeFromNewTemplate(fieldValues, MakeOneBased(fileCountIndex), composeIndex);
 
 				changeName(pathName, Path.Combine(path, newName));
 			}
 		}
 
-		static ComposerFromTemplate MakeComposer(string template) => (fieldValues, composeIndex) =>
+		static ComposerFromTemplate MakeComposer(string template) => (fieldValues, fileCountIndex, composeIndex) =>
 		{
 			var writer = new StringBuilder(); //TODO optimize allocation
 			for(int i = 0; i < template.Length; i++)
@@ -62,7 +62,7 @@ namespace JP.FileScripts
 				{
 					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(++i));
 					i += textLength;
-					writer.Append(Compose(field, fieldValues[field], composeIndex));
+					writer.Append(Compose(field, GetValue(fieldValues, field, fileCountIndex), composeIndex));
 				}
 				else
 				{
@@ -71,7 +71,16 @@ namespace JP.FileScripts
 			}
 			return writer.ToString();
 		};
-		
+
+		static int GetValue(FieldValues fieldValues, Field field, int fileCountIndex)
+		{
+			if (field == Field.Index)
+			{
+				return fileCountIndex;
+			}
+			return fieldValues[field];
+		}
+
 		bool TryGetFieldValues(string name, out FieldValues fieldValues)
 		{
 			fieldValues = new FieldValues(FieldsInOldTemplate.Count);
@@ -79,7 +88,7 @@ namespace JP.FileScripts
 			{
 				var maybeValue = name.AsSpan(position.Value.StartIndex, position.Value.Length);
 
-				if(Value.TryParse(maybeValue, out var value))
+				if(int.TryParse(maybeValue, out var value))
 				{
 					fieldValues.Add(position.Key, value);
 				}
@@ -130,8 +139,8 @@ namespace JP.FileScripts
 			}
 		}
 
-		static string Compose(Field field, Value value,
-			Func<Value, string> composeIndex)
+		static string Compose(Field field, int value,
+			Func<int, string> composeIndex)
 		{
 			switch(field)
 			{
@@ -147,7 +156,9 @@ namespace JP.FileScripts
 			}
 		}
 
-		static Func<Value, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{nameCount}");
+		static Func<int, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{MakeOneBased(nameCount)}");
+
+		static int MakeOneBased(int index) => index + 1;
 		
 		static (string Path, string FileName) BreakDownPathName(string pathName)
 		{
