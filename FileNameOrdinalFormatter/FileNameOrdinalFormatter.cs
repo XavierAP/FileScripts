@@ -8,7 +8,6 @@ namespace JP.FileScripts
 {
     using FastString = ReadOnlySpan<char>;
 
-	[Pure]
 	/// <summary>
 	/// Windows can helpfully number files (1) (2) ... (10) etc
 	/// but this results in wrong ordering with other software.
@@ -17,7 +16,8 @@ namespace JP.FileScripts
 	public class FileNameOrdinalFormatter : IBatchNameChanger
 	{
 		private const int NullLength = int.MinValue;
-
+		
+		[Pure]
 		public void
 		ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{

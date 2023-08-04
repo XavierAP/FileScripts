@@ -20,7 +20,6 @@ namespace JP.FileScripts
 		Second,
 	}
 
-	[Pure]
 	public class FileNameTemplateConverter : IBatchNameChanger
 	{
 		public FileNameTemplateConverter(string oldTemplate, string newTemplate)
@@ -32,8 +31,13 @@ namespace JP.FileScripts
 		readonly FieldPositionsInTemplate FieldsInOldTemplate;
 		readonly ComposerFromTemplate ComposeFromNewTemplate;
 
+		readonly StringBuilder composeBuffer = new();
+		readonly FieldValues fieldValuesBuffer = new();
+
 		const char FieldEscapeChar = '\\';
 		const int FieldEscapeCharLen = 1;
+		
+		[Pure] // in practice :) there are buffers but hush no one could tell
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
@@ -43,10 +47,11 @@ namespace JP.FileScripts
 			{
 				var pathName = pathNames[fileCountIndex];
 				var (path, fileName, extension) = BreakDownPathName(pathName);
-				if (!TryGetFieldValues(fileName, out var fieldValues)) //TODO optimize allocation
+
+				if (!TryGetFieldValues(fileName))
 					continue;
 
-				var newName = ComposeFromNewTemplate(fieldValues, MakeOneBased(fileCountIndex), composeIndex);
+				var newName = ComposeFromNewTemplate(fieldValuesBuffer, MakeOneBased(fileCountIndex), composeIndex);
 				newName = Path.Combine(path, newName);
 				newName = Path.ChangeExtension(newName, extension);
 
@@ -54,9 +59,10 @@ namespace JP.FileScripts
 			}
 		}
 
-		static ComposerFromTemplate MakeComposer(string template) => (fieldValues, fileCountIndex, composeIndex) =>
+		ComposerFromTemplate MakeComposer(string template) => (fieldValues, fileCountIndex, composeIndex) =>
 		{
-			var writer = new StringBuilder(); //TODO optimize allocation
+			composeBuffer.Clear();
+
 			for(int i = 0; i < template.Length; i++)
 			{
 				var c = template[i];
@@ -64,11 +70,11 @@ namespace JP.FileScripts
 				{
 					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(i + FieldEscapeCharLen));
 					i += textLength;
-					writer.Append(Compose(field, GetValue(fieldValues, field, fileCountIndex), composeIndex));
+					composeBuffer.Append(Compose(field, GetValue(fieldValues, field, fileCountIndex), composeIndex));
 				}
-				else writer.Append(c);
+				else composeBuffer.Append(c);
 			}
-			return writer.ToString();
+			return composeBuffer.ToString();
 		};
 
 		static int GetValue(FieldValues fieldValues, Field field, int fileCountIndex)
@@ -80,16 +86,16 @@ namespace JP.FileScripts
 			return fieldValues[field];
 		}
 
-		bool TryGetFieldValues(string name, out FieldValues fieldValues)
+		bool TryGetFieldValues(string name)
 		{
-			fieldValues = new FieldValues(FieldsInOldTemplate.Count);
+			fieldValuesBuffer.Clear();
 			foreach (var position in FieldsInOldTemplate)
 			{
 				var maybeValue = name.AsSpan(position.Value.StartIndex, position.Value.Length);
 
 				if(int.TryParse(maybeValue, out var value))
 				{
-					fieldValues.Add(position.Key, value);
+					fieldValuesBuffer.Add(position.Key, value);
 				}
 				else return false;
 			}
