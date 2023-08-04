@@ -156,7 +156,7 @@ namespace JP.FileScripts
 			}
 		}
 
-		static Func<int, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{MakeOneBased(nameCount)}");
+		static Func<int, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{MakeOneBased(nameCount).ToString().Length}");
 
 		static int MakeOneBased(int index) => index + 1;
 		
