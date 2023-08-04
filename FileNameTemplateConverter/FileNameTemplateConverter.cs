@@ -42,13 +42,15 @@ namespace JP.FileScripts
 			for (int fileCountIndex = 0; fileCountIndex < pathNames.Count; fileCountIndex++)
 			{
 				var pathName = pathNames[fileCountIndex];
-				var (path, fileName) = BreakDownPathName(pathName);
+				var (path, fileName, extension) = BreakDownPathName(pathName);
 				if (!TryGetFieldValues(fileName, out var fieldValues)) //TODO optimize allocation
 					continue;
 
 				var newName = ComposeFromNewTemplate(fieldValues, MakeOneBased(fileCountIndex), composeIndex);
+				newName = Path.Combine(path, newName);
+				newName = Path.ChangeExtension(newName, extension);
 
-				changeName(pathName, Path.Combine(path, newName));
+				changeName(pathName, newName);
 			}
 		}
 
@@ -60,14 +62,11 @@ namespace JP.FileScripts
 				var c = template[i];
 				if(c == FieldEscapeChar)
 				{
-					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(++i));
+					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(i + FieldEscapeCharLen));
 					i += textLength;
 					writer.Append(Compose(field, GetValue(fieldValues, field, fileCountIndex), composeIndex));
 				}
-				else
-				{
-					writer.Append(c);
-				}
+				else writer.Append(c);
 			}
 			return writer.ToString();
 		};
@@ -120,7 +119,7 @@ namespace JP.FileScripts
 			var firstChar = rest[0];
 			return (
 				GetNextField(firstChar),
-				rest.LastIndexOf(firstChar) + 1 );
+				rest.LastIndexOf(firstChar) + FieldEscapeCharLen );
 		}
 
 		static Field GetNextField(char firstChar)
@@ -160,11 +159,12 @@ namespace JP.FileScripts
 
 		static int MakeOneBased(int index) => index + 1;
 		
-		static (string Path, string FileName) BreakDownPathName(string pathName)
+		static (string Path, string FileName, string Extension) BreakDownPathName(string pathName)
 		{
 			var path = Path.GetDirectoryName(pathName) ?? string.Empty;
 			var fileName = Path.GetFileNameWithoutExtension(pathName) ?? string.Empty;
-			return (path, fileName);
+			var extension = Path.GetExtension(pathName) ?? string.Empty;
+			return (path, fileName, extension);
 		}
 	}
 }

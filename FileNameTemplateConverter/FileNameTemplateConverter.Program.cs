@@ -9,7 +9,7 @@
 				@"\YYYY-\MM-\DD (\i)"
 				).ChangeNames(
 					Directory.EnumerateFiles(args[0]).ToArray(),
-					Test.ChangeName);
+					File.Move);
 		}
 	}
 }
