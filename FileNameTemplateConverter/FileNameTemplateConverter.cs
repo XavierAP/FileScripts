@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.Contracts;
 using System.Text;
+using System.Xml.Linq;
 
 namespace JP.FileScripts
 {
@@ -16,6 +17,9 @@ namespace JP.FileScripts
 		Year,
 		Month,
 		Day,
+		Hour,
+		Minute,
+		Second,
 	}
 
 	[Pure]
@@ -27,10 +31,10 @@ namespace JP.FileScripts
 			ComposeFromNewTemplate = MakeComposer(newTemplate);
 		}
 
-		private readonly FieldPositionsInTemplate FieldsInOldTemplate;
-		private readonly ComposerFromTemplate ComposeFromNewTemplate;
+		readonly FieldPositionsInTemplate FieldsInOldTemplate;
+		readonly ComposerFromTemplate ComposeFromNewTemplate;
 
-		private const char FieldEscapeChar = '\\';
+		const char FieldEscapeChar = '\\';
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
@@ -38,15 +42,17 @@ namespace JP.FileScripts
 
 			foreach (var pathName in pathNames)
 			{
-				var (path, fileName) = pathName.BreakDownPathName();
-				var fieldValues = GetFieldValues(fileName); //TODO optimize allocation
+				var (path, fileName) = BreakDownPathName(pathName);
+				if (!TryGetFieldValues(fileName, out var fieldValues)) //TODO optimize allocation
+					continue;
+
 				var newName = ComposeFromNewTemplate(fieldValues, composeIndex);
 
 				changeName(pathName, Path.Combine(path, newName));
 			}
 		}
 
-		private static ComposerFromTemplate MakeComposer(string template) => (fieldValues, composeIndex) =>
+		static ComposerFromTemplate MakeComposer(string template) => (fieldValues, composeIndex) =>
 		{
 			var writer = new StringBuilder(); //TODO optimize allocation
 			for(int i = 0; i < template.Length; i++)
@@ -54,7 +60,7 @@ namespace JP.FileScripts
 				var c = template[i];
 				if(c == FieldEscapeChar)
 				{
-					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(i));
+					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(++i));
 					i += textLength;
 					writer.Append(Compose(field, fieldValues[field], composeIndex));
 				}
@@ -65,39 +71,57 @@ namespace JP.FileScripts
 			}
 			return writer.ToString();
 		};
+		
+		bool TryGetFieldValues(string name, out FieldValues fieldValues)
+		{
+			fieldValues = new FieldValues(FieldsInOldTemplate.Count);
+			foreach (var position in FieldsInOldTemplate)
+			{
+				var maybeValue = name.AsSpan(position.Value.StartIndex, position.Value.Length);
 
-		private FieldValues GetFieldValues(string name)
+				if(Value.TryParse(maybeValue, out var value))
+				{
+					fieldValues.Add(position.Key, value);
+				}
+				else return false;
+			}
+			return true;
+		}
+
+		FieldValues GetFieldValues(string name)
 		{
 			return FieldsInOldTemplate.ToDictionary(
 				position => position.Key,
 				position => Value.Parse(name.AsSpan(position.Value.StartIndex, position.Value.Length)));
 		}
 
-		private static FieldPositionsInTemplate GetFields(string template)
+		static FieldPositionsInTemplate GetFields(string template)
 		{
 			var fields = new FieldPositionsInTemplate();
 
 			FastString rest = template;
-			int i;
+			int relativePos, absolutePos = 0;
 
-			while (0 < (i = rest.IndexOf(FieldEscapeChar)))
+			while (0 < (relativePos = rest.IndexOf(FieldEscapeChar) + 1))
 			{
-				rest = rest.Slice(++i);
+				rest = rest.Slice(relativePos);
 				var (field, len) = GetNextFieldAndLength(rest);
-				fields[field] = (i, len);
+				fields[field] = (relativePos + absolutePos - 1, len);
+				rest = rest.Slice(len);
+				absolutePos += relativePos + len;
 			}
 			return fields;
 		}
 
-		private static (Field Field, int TextLength) GetNextFieldAndLength(FastString rest)
+		static (Field Field, int TextLength) GetNextFieldAndLength(FastString rest)
 		{
 			var firstChar = rest[0];
 			return (
 				GetNextField(firstChar),
-				rest.LastIndexOf(firstChar) );
+				rest.LastIndexOf(firstChar) + 1 );
 		}
 
-		private static Field GetNextField(char firstChar)
+		static Field GetNextField(char firstChar)
 		{
 			switch(firstChar)
 			{
@@ -105,25 +129,38 @@ namespace JP.FileScripts
 				case 'Y': return Field.Year;
 				case 'M': return Field.Month;
 				case 'D': return Field.Day;
+				case 'h': return Field.Hour;
+				case 'm': return Field.Minute;
+				case 's': return Field.Second;
 
 				default: throw new InvalidProgramException($"Unknown field code: {firstChar}");
 			}
 		}
 
-		private static string Compose(Field field, Value value,
+		static string Compose(Field field, Value value,
 			Func<Value, string> composeIndex)
 		{
 			switch(field)
 			{
-				case Field.Index: return composeIndex(value);
-				case Field.Year:  return value.ToString("D4");
+				case Field.Index:  return composeIndex(value);
+				case Field.Year:   return value.ToString("D4");
 				case Field.Month:
-				case Field.Day:   return value.ToString("D2");
+				case Field.Day:
+				case Field.Hour:
+				case Field.Minute:
+				case Field.Second: return value.ToString("D2");
 
 				default: throw new InvalidProgramException($"Unknown field: {field}");
 			}
 		}
 
-		private static Func<Value, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{nameCount}");
+		static Func<Value, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{nameCount}");
+		
+		static (string Path, string FileName) BreakDownPathName(string pathName)
+		{
+			var path = Path.GetDirectoryName(pathName) ?? string.Empty;
+			var fileName = Path.GetFileNameWithoutExtension(pathName) ?? string.Empty;
+			return (path, fileName);
+		}
 	}
 }
