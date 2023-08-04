@@ -1,6 +1,6 @@
 ﻿namespace JP.FileScripts
 {
-	static class Program
+	static class Demo
 	{
 		static void Main(string[] args)
 		{
