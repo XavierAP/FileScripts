@@ -26,7 +26,7 @@ namespace JP.FileScripts
 		}
 
 		private readonly FieldPositionsInTemplate FieldsInOldTemplate;
-		private readonly Action<FieldValues> ComposeFromNewTemplate;
+		private readonly Func<FieldValues, string> ComposeFromNewTemplate;
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
@@ -34,22 +34,27 @@ namespace JP.FileScripts
 			{
 				var (path, fileName) = pathName.BreakDownPathName();
 				var fieldValues = GetFieldValues(fileName);
-				var newName = MakeNewName(fieldValues);
+				var newName = ComposeFromNewTemplate(fieldValues);
 
 				changeName(pathName, Path.Combine(path, newName));
 			}
 		}
+
+		private static Func<FieldValues, string> MakeComposer(string template) => fieldValues =>
+		{
+			var builder = new StringBuilder();
+			foreach(var fieldValue in fieldValues)
+			{
+				throw new NotImplementedException();
+			}
+			return builder.ToString();
+		};
 
 		private FieldValues GetFieldValues(string name)
 		{
 			return FieldsInOldTemplate.ToDictionary(
 				position => position.Key,
 				position => Value.Parse(name.AsSpan(position.Value.StartIndex, position.Value.Length)));
-		}
-
-		private string MakeNewName(FieldValues fieldValues)
-		{
-			throw new NotImplementedException();
 		}
 
 		private const char BeforeField = '\\';
@@ -79,11 +84,6 @@ namespace JP.FileScripts
 				case 'D': return Field.Day;
 				default:
 			}
-		}
-
-		private Action<FieldValues> MakeComposer(string newTemplate)
-		{
-			throw new NotImplementedException();
 		}
 	}
 }
