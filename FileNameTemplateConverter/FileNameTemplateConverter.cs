@@ -87,13 +87,6 @@ namespace JP.FileScripts
 			return true;
 		}
 
-		FieldValues GetFieldValues(string name)
-		{
-			return FieldsInOldTemplate.ToDictionary(
-				position => position.Key,
-				position => Value.Parse(name.AsSpan(position.Value.StartIndex, position.Value.Length)));
-		}
-
 		static FieldPositionsInTemplate GetFields(string template)
 		{
 			var fields = new FieldPositionsInTemplate();
