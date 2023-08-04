@@ -30,7 +30,7 @@ namespace JP.FileScripts
 		private readonly FieldPositionsInTemplate FieldsInOldTemplate;
 		private readonly ComposerFromTemplate ComposeFromNewTemplate;
 
-		private const char BeforeField = '\\';
+		private const char FieldEscapeChar = '\\';
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
@@ -52,7 +52,7 @@ namespace JP.FileScripts
 			for(int i = 0; i < template.Length; i++)
 			{
 				var c = template[i];
-				if(c == BeforeField)
+				if(c == FieldEscapeChar)
 				{
 					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(i));
 					i += textLength;
@@ -80,10 +80,11 @@ namespace JP.FileScripts
 			FastString rest = template;
 			int i;
 
-			while (0 < (i = rest.IndexOf(BeforeField)))
+			while (0 < (i = rest.IndexOf(FieldEscapeChar)))
 			{
-				rest = rest.Slice(i + 1);
-				fields.Add(GetNextField(rest));
+				rest = rest.Slice(++i);
+				var (field, len) = GetNextFieldAndLength(rest);
+				fields[field] = (i, len);
 			}
 			return fields;
 		}
