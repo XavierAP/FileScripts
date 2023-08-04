@@ -34,6 +34,7 @@ namespace JP.FileScripts
 		readonly ComposerFromTemplate ComposeFromNewTemplate;
 
 		const char FieldEscapeChar = '\\';
+		const int FieldEscapeCharLen = 1;
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
@@ -94,11 +95,11 @@ namespace JP.FileScripts
 			FastString rest = template;
 			int relativePos, absolutePos = 0;
 
-			while (0 < (relativePos = rest.IndexOf(FieldEscapeChar) + 1))
+			while (0 <= (relativePos = rest.IndexOf(FieldEscapeChar)))
 			{
-				rest = rest.Slice(relativePos);
+				rest = rest.Slice(relativePos + FieldEscapeCharLen);
 				var (field, len) = GetNextFieldAndLength(rest);
-				fields[field] = (relativePos + absolutePos - 1, len);
+				fields[field] = (relativePos + absolutePos, len);
 				rest = rest.Slice(len);
 				absolutePos += relativePos + len;
 			}
