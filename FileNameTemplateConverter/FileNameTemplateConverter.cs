@@ -56,7 +56,7 @@ namespace JP.FileScripts
 				if (OtherFieldsChanged())
 					fileCountIndex = 0;
 
-				var newName = ComposeFromNewTemplate(fieldValuesBuffer, MakeOneBased(fileCountIndex), composeIndex);
+				var newName = ComposeFromNewTemplate(fieldValuesBuffer, ++fileCountIndex, composeIndex);
 				newName = Path.Combine(path, newName);
 				newName = Path.ChangeExtension(newName, extension);
 
