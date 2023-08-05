@@ -9,7 +9,7 @@ namespace JP.FileScripts
 	using FieldPositionsInTemplate = Dictionary<Field, (int StartIndex, int Length)>;
     using FastString = ReadOnlySpan<char>;
 
-	delegate string ComposerFromTemplate(FieldValues fieldValues, int fileCountIndex, Func<Value, string> composeIndex);
+	delegate string ComposerFromTemplate(FieldValues fieldValues, int fileCountIndex);
 
 	enum Field
 	{
@@ -44,8 +44,6 @@ namespace JP.FileScripts
 
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
-			var composeIndex = MakeIndexComposer(pathNames.Count);
-
 			int fileCountIndex = 0;
 			foreach (var pathName in pathNames)
 			{
@@ -56,7 +54,7 @@ namespace JP.FileScripts
 				if (OtherFieldsChanged())
 					fileCountIndex = 0;
 
-				var newName = ComposeFromNewTemplate(fieldValuesBuffer, ++fileCountIndex, composeIndex);
+				var newName = ComposeFromNewTemplate(fieldValuesBuffer, ++fileCountIndex);
 				newName = Path.Combine(path, newName);
 				newName = Path.ChangeExtension(newName, extension);
 
@@ -64,7 +62,7 @@ namespace JP.FileScripts
 			}
 		}
 
-		ComposerFromTemplate MakeComposer(string template) => (fieldValues, fileCountIndex, composeIndex) =>
+		ComposerFromTemplate MakeComposer(string template) => (fieldValues, fileCountIndex) =>
 		{
 			composeBuffer.Clear();
 
@@ -75,7 +73,7 @@ namespace JP.FileScripts
 				{
 					var (field, textLength) = GetNextFieldAndLength(template.AsSpan(i + FieldEscapeCharLen));
 					i += textLength;
-					composeBuffer.Append(Compose(field, GetValue(fieldValues, field, fileCountIndex), composeIndex));
+					composeBuffer.Append(Compose(field, GetValue(fieldValues, field, fileCountIndex)));
 				}
 				else composeBuffer.Append(c);
 			}
@@ -157,12 +155,11 @@ namespace JP.FileScripts
 			}
 		}
 
-		static string Compose(Field field, Value value,
-			Func<Value, string> composeIndex)
+		static string Compose(Field field, Value value)
 		{
 			switch(field)
 			{
-				case Field.Index:  return composeIndex(value);
+				case Field.Index:  return value.ToString();
 				case Field.Year:   return value.ToString("D4");
 				case Field.Month:
 				case Field.Day:
