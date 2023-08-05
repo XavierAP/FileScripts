@@ -7,7 +7,7 @@ namespace JP.FileScripts
 	using Value = Int32;
 	using FieldValues = Dictionary<Field, int>;
 	using FieldPositionsInTemplate = Dictionary<Field, (int StartIndex, int Length)>;
-    using FastString = ReadOnlySpan<char>;
+	using FastString = ReadOnlySpan<char>;
 
 	delegate string ComposerFromTemplate(FieldValues fieldValues, int fileCountIndex);
 
@@ -171,10 +171,6 @@ namespace JP.FileScripts
 			}
 		}
 
-		static Func<Value, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{MakeOneBased(nameCount).ToString().Length}");
-
-		static int MakeOneBased(int index) => index + 1;
-		
 		static (string Path, string FileName, string Extension) BreakDownPathName(string pathName)
 		{
 			var path = Path.GetDirectoryName(pathName) ?? string.Empty;
