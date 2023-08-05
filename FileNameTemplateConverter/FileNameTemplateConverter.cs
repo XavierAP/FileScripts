@@ -94,7 +94,7 @@ namespace JP.FileScripts
 		bool TryGetFieldValues(string name)
 		{
 			fieldValuesBuffer.Clear();
-			foreach (var position in FieldsInOldTemplate)
+			foreach (var position in FieldsInOldTemplate.Where(position => position.Key != Field.Index))
 			{
 				var maybeValue = name.AsSpan(position.Value.StartIndex, position.Value.Length);
 
