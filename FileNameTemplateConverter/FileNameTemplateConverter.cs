@@ -1,13 +1,15 @@
 ﻿using System.Diagnostics.Contracts;
 using System.Text;
+using JP.Utils;
 
 namespace JP.FileScripts
 {
+	using Value = Int32;
 	using FieldValues = Dictionary<Field, int>;
 	using FieldPositionsInTemplate = Dictionary<Field, (int StartIndex, int Length)>;
     using FastString = ReadOnlySpan<char>;
 
-	delegate string ComposerFromTemplate(FieldValues fieldValues, int fileCountIndex, Func<int, string> composeIndex);
+	delegate string ComposerFromTemplate(FieldValues fieldValues, int fileCountIndex, Func<Value, string> composeIndex);
 
 	enum Field
 	{
@@ -33,6 +35,7 @@ namespace JP.FileScripts
 
 		readonly StringBuilder composeBuffer = new();
 		readonly FieldValues fieldValuesBuffer = new();
+		readonly FieldValues previousFieldValuesBuffer = new();
 
 		const char FieldEscapeChar = '\\';
 		const int FieldEscapeCharLen = 1;
@@ -43,13 +46,15 @@ namespace JP.FileScripts
 		{
 			var composeIndex = MakeIndexComposer(pathNames.Count);
 
-			for (int fileCountIndex = 0; fileCountIndex < pathNames.Count; fileCountIndex++)
+			int fileCountIndex = 0;
+			foreach (var pathName in pathNames)
 			{
-				var pathName = pathNames[fileCountIndex];
 				var (path, fileName, extension) = BreakDownPathName(pathName);
 
 				if (!TryGetFieldValues(fileName))
 					continue;
+				if (OtherFieldsChanged())
+					fileCountIndex = 0;
 
 				var newName = ComposeFromNewTemplate(fieldValuesBuffer, MakeOneBased(fileCountIndex), composeIndex);
 				newName = Path.Combine(path, newName);
@@ -77,7 +82,7 @@ namespace JP.FileScripts
 			return composeBuffer.ToString();
 		};
 
-		static int GetValue(FieldValues fieldValues, Field field, int fileCountIndex)
+		static Value GetValue(FieldValues fieldValues, Field field, int fileCountIndex)
 		{
 			if (field == Field.Index)
 			{
@@ -93,13 +98,21 @@ namespace JP.FileScripts
 			{
 				var maybeValue = name.AsSpan(position.Value.StartIndex, position.Value.Length);
 
-				if(int.TryParse(maybeValue, out var value))
+				if(Value.TryParse(maybeValue, out var value))
 				{
 					fieldValuesBuffer.Add(position.Key, value);
 				}
 				else return false;
 			}
 			return true;
+		}
+
+		bool OtherFieldsChanged()
+		{
+			var ans = !fieldValuesBuffer.IsEqualContentTo(previousFieldValuesBuffer);
+			previousFieldValuesBuffer.Clear();
+			previousFieldValuesBuffer.AddAndReplace(fieldValuesBuffer);
+			return ans;
 		}
 
 		static FieldPositionsInTemplate GetFields(string template)
@@ -144,8 +157,8 @@ namespace JP.FileScripts
 			}
 		}
 
-		static string Compose(Field field, int value,
-			Func<int, string> composeIndex)
+		static string Compose(Field field, Value value,
+			Func<Value, string> composeIndex)
 		{
 			switch(field)
 			{
@@ -161,7 +174,7 @@ namespace JP.FileScripts
 			}
 		}
 
-		static Func<int, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{MakeOneBased(nameCount).ToString().Length}");
+		static Func<Value, string> MakeIndexComposer(int nameCount) => value => value.ToString($"D{MakeOneBased(nameCount).ToString().Length}");
 
 		static int MakeOneBased(int index) => index + 1;
 		
