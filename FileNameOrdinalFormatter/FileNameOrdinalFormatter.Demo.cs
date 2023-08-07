@@ -1,7 +1,4 @@
-﻿using System.IO;
-using System.Linq;
-
-namespace JP.FileScripts
+﻿namespace JP.FileScripts
 {
 	static class Demo
 	{
