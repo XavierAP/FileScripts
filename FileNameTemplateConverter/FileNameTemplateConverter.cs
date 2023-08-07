@@ -5,7 +5,7 @@ using JP.Utils;
 namespace JP.FileScripts
 {
 	using Value = Int32;
-	using FieldValues = Dictionary<Field, int>;
+	using FieldValues = Dictionary<Field, Int32>;
 	using FieldPositionsInTemplate = Dictionary<Field, (int StartIndex, int Length)>;
 	using FastString = ReadOnlySpan<char>;
 
