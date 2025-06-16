@@ -24,6 +24,7 @@ namespace JP.FileScripts
 
 	public class FileNameTemplateConverter : IBatchNameChanger
 	{
+		/// <param name="oldTemplate">Need not match the whole file name; just enough of its start to get the data for <paramref name="newTemplate"/>.</param>
 		public FileNameTemplateConverter(string oldTemplate, string newTemplate)
 		{
 			FieldsInOldTemplate = GetFields(oldTemplate);
