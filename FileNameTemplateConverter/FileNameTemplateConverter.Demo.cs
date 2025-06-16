@@ -5,7 +5,7 @@
 		static void Main(string[] args)
 		{
 			new FileNameTemplateConverter(
-				@"IMG_\YYYY\MM\DD_\hh\mm\ss",
+				@"IMG_\YYYY\MM\DD",
 				@"\YYYY-\MM-\DD (\i)"
 				).ChangeNames(
 					Directory.EnumerateFiles(args[0]).ToArray(),

@@ -41,7 +41,6 @@ namespace JP.FileScripts
 		const int FieldEscapeCharLen = 1;
 		
 		[Pure] // in practice :) there are buffers but hush no one could tell
-
 		public void ChangeNames(IReadOnlyList<string> pathNames, NameChanger changeName)
 		{
 			int fileCountIndex = 0;
